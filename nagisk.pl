@@ -545,13 +545,13 @@ if ($asterisk_command_tag eq "channels") {
         if (/Username/) {
             next;
         }
-        if ((/$asterisk_peer_name/) and (/105 Registered/)) {
+        if ((/$asterisk_peer_name/) and (/Registered/)) {
             $return = $STA_OK;
             $output = "Trunk $asterisk_peer_name Registered";
             $found++;
             last;
         }
-        if ((/$asterisk_peer_name/) and (!/105 Registered/)) {
+        if ((/$asterisk_peer_name/) and (!/Registered/)) {
             $return = $STA_CRITICAL;
             $output = "Trunk $asterisk_peer_name Not Registered";
             $found++;
