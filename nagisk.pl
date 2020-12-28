@@ -11,6 +11,7 @@
 # Xavier Lemaire <xavier@amassi-network.com> (19/04/2013)
 # Pierre-Alexandre Caquineau (12/05/2015) [Multi Trunk Sip Registrations]
 # Pierre-Alexandre Caquineau (25/01/2016) [Nb active calls]
+# Tobias Bossert (28/12/2020) [PJ-SIP Registry]
 #------------------------------------------------------------------------------
 use Getopt::Std;
 use strict;
@@ -40,6 +41,7 @@ my $asterisk_buddy_name         = "asterisk";
 my $asterisk_warn_treshold      = "1000";
 my $asterisk_crit_treshold      = "2000";
 my $asterisk_command_registry   = "sip show registry";
+my $asterisk_command_pj_sip_registry = "pjsip show registrations";
 my $asterisk_command_calls      = "core show calls";
 my $asterisk_command_failover   = "failover show";
 
@@ -48,7 +50,7 @@ my $asterisk_command_failover   = "failover show";
 #------------------------------------------------------------------------------
 
 # version
-my $version = "1.2.9";
+my $version = "1.2.11";
 
 use vars qw( %opts);
 
@@ -104,6 +106,7 @@ sub printsyntax() {
                   . "-c pri_spans: Display the status of the pri spans\n"
                   . "-c pri_span: Display the status of a specific pri span (set with -s option)\n"
                   . "-c registry: Display the Hosts and the Registry\n"
+                  . "-c pjsip_registry: Display the pj_sip Hosts and the Registry\n"
                   . "-c failover: Display the failover device status\n"
                   . "-s <span number>: Set the span number (default is 1)\n"
                   . "-p <peer name>\n"
@@ -244,6 +247,8 @@ for my $option (keys %opts) {
                         $asterisk_command = $asterisk_command_pri_span;
                 } elsif ($value eq "registry") {
                         $asterisk_command = $asterisk_command_registry;
+                } elsif ($value eq "pjsip_registry") {
+                        $asterisk_command = $asterisk_command_pj_sip_registry;
                 } elsif ($value eq "version") {
                         $asterisk_command = $asterisk_command_version;
                 } elsif ($value eq "calls") {
@@ -565,6 +570,32 @@ if ($asterisk_command_tag eq "channels") {
         $return = $STA_CRITICAL;
         $output = "Trunk $asterisk_peer_name Not Found";
     }
+
+# Output example: (./nagisk.pl -c pjsip_registry -p peer_name)
+#  <Registration/ServerURI...........<Auth..........>  <Status.......>  <Last Reg..>  <Intvl>  <Next Start.....secs>
+# ===================================================================================================================
+#
+#  <peer_name>>/sip:<server_name>     <peer_name>       Registered       Mon 12:44:28     3590  Mon 13:44:18      460
+#
+# Objects found: 1
+} elsif ($asterisk_command_tag eq "pjsip_registry") {
+        my $found=0;
+        foreach (`$asterisk_bin $asterisk_option \"$asterisk_command\"`) {
+                # skip lines with no info
+                if(/<Registration/ || (/======/)) {
+                        next;
+                }
+                if ((/$asterisk_peer_name/) and (/Registered/)) {
+                        $return = $STA_OK;
+                        $output = "Trunk $asterisk_peer_name Registered";
+                        $found++;
+                        last;
+                }
+        }
+        if ($found == 0) {
+                $return = $STA_CRITICAL;
+                $output = "Trunk $asterisk_peer_name Not Found";
+        }
 
 # --- VERSION ---
 # Output example:
